@@ -9,6 +9,15 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import bcrypt from 'bcrypt';
 
+const userSelect = {
+  id: true,
+  name: true,
+  email: true,
+  createdAt: true,
+  updatedAt: true,
+  deletedAt: true,
+};
+
 @Injectable()
 export class UserService {
   constructor(private readonly prisma: PrismaService) {}
@@ -44,7 +53,12 @@ export class UserService {
   }
 
   findAll() {
-    return this.prisma.user.findMany();
+    return this.prisma.user.findMany({
+      where: {
+        deletedAt: null,
+      },
+      select: userSelect,
+    });
   }
 
   async findOne(id: string) {
@@ -53,6 +67,7 @@ export class UserService {
         id,
         deletedAt: null,
       },
+      select: userSelect,
     });
 
     if (!user) {
@@ -72,6 +87,7 @@ export class UserService {
           deletedAt: null,
         },
         data: updateUserDto,
+        select: userSelect,
       });
     } catch (error) {
       if (
@@ -91,10 +107,12 @@ export class UserService {
     return this.prisma.user.update({
       where: {
         id,
+        deletedAt: null,
       },
       data: {
         deletedAt: new Date(),
       },
+      select: userSelect,
     });
   }
 }
