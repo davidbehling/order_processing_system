@@ -56,7 +56,7 @@ export class UserController {
   @ApiResponse(successfully)
   @ApiResponse(invalidToken)
   @ApiResponse(userNotFound)
-  @ApiResponse(emailAlreadyRegistered)  
+  @ApiResponse(emailAlreadyRegistered)
   create(@Body() createUserDto: CreateUserDto) {
     return this.userService.create(createUserDto);
   }
