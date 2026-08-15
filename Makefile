@@ -3,8 +3,11 @@
 build:
 	docker compose --env-file dotenv_files/.env build --no-cache
 
-up:
+upd:
 	docker compose --env-file dotenv_files/.env up -d
+
+up:
+	docker compose --env-file dotenv_files/.env up
 
 down:
 	docker compose down
@@ -17,4 +20,3 @@ kafka:
 
 run:
 	npm run start:dev
-

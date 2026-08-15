@@ -10,9 +10,6 @@ services:
 
     working_dir: /app
 
-    env_file:
-      - ./dotenv_files/.env
-
     ports:
       - "${PORT}:3000"
 
@@ -53,6 +50,7 @@ services:
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql
 
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
