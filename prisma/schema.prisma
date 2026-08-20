@@ -3,6 +3,13 @@
 
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -51,6 +58,7 @@ model Order {
   id        String      @id @default(cuid())
   userId    String
   total     Decimal
+  status    OrderStatus @default(PENDING)
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
 
