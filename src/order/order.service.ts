@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
+import { ListOrderDto } from './dto/list-order.dto';
 import { Prisma } from 'generated/prisma/client';
 
 interface OrderItemData {
@@ -46,6 +47,29 @@ export class OrderService {
       data: {
         stock: {
           decrement: quantity,
+        },
+      },
+    };
+  }
+
+  private includeUserAndItens() {
+    return {
+      user: {
+        select: {
+          name: true,
+        },
+      },
+      items: {
+        select: {
+          id: true,
+          productId: true,
+          quantity: true,
+          price: true,
+          product: {
+            select: {
+              name: true,
+            },
+          },
         },
       },
     };
@@ -131,19 +155,113 @@ export class OrderService {
     });
   }
 
-  findAll() {
-    return `This action returns  all order`;
+  async findAll(userId: string, listOrderDto: ListOrderDto) {
+    const {
+      status,
+      productId,
+      startCreatedAt,
+      endCreatedAt,
+      totalGt,
+      totalLt,
+      limit,
+      page,
+    } = listOrderDto;
+
+    const skip = (page - 1) * limit;
+
+    const createdAt = {
+      ...(startCreatedAt && {
+        gte: new Date(`${startCreatedAt}T00:00:00.000Z`),
+      }),
+
+      ...(endCreatedAt && {
+        lte: new Date(`${endCreatedAt}T23:59:59.999Z`),
+      }),
+    };
+
+    const where = {
+      userId,
+      ...(status && {
+        status,
+      }),
+
+      ...(productId && {
+        items: {
+          some: {
+            productId,
+          },
+        },
+      }),
+
+      ...((startCreatedAt || endCreatedAt) && {
+        createdAt,
+      }),
+
+      ...(totalGt !== undefined || totalLt !== undefined
+        ? {
+            total: {
+              ...(totalGt !== undefined && {
+                gt: totalGt,
+              }),
+
+              ...(totalLt !== undefined && {
+                lt: totalLt,
+              }),
+            },
+          }
+        : {}),
+    };
+
+    const [orders, total] = await this.prisma.$transaction([
+      this.prisma.order.findMany({
+        where,
+        include: this.includeUserAndItens(),
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take: limit,
+      }),
+
+      this.prisma.order.count({
+        where,
+      }),
+    ]);
+
+    return {
+      data: orders,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
-  findOne(id: string) {
-    return `This action returns a #${id} order`;
+  async findOne(id: string) {
+    const order = await this.prisma.order.findUnique({
+      where: {
+        id,
+      },
+      include: this.includeUserAndItens(),
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    return order;
   }
 
-  update(id: string, updateOrderDto: UpdateOrderDto) {
-    return `This action updates a #${id} order`;
-  }
+  async update(id: string, updateOrderDto: UpdateOrderDto) {
+    await this.findOne(id);
 
-  remove(id: string) {
-    return `This action removes a #${id} order`;
+    return await this.prisma.order.update({
+      where: {
+        id,
+      },
+      data: updateOrderDto,
+    });
   }
 }
